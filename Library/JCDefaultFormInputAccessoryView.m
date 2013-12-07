@@ -397,38 +397,60 @@ CGAffineTransform affineTransformForInterfaceOrientationAndWindow(UIInterfaceOri
   CGRect containingRect = CGRectApplyAffineTransform([window convertRect:containingView.bounds fromView:containingView], orientationTransform);
   CGRect keyboardRect = CGRectApplyAffineTransform(self.keyboardDisplayedFrame, orientationTransform);
 
-  // Calculate where the responding view would sit exactly halfway between the
-  // top of the containing view and the top of the keyboard view.
-  CGFloat midline = (keyboardRect.origin.y - containingRect.origin.y) / 2.0;
-  CGFloat calculatedResponderY = midline - floorf(responderRect.size.height / 2.0);
-  CGFloat dy = calculatedResponderY - responderRect.origin.y;    
 
-  // Bound the calculated d-y  value so that it doesn't cause the containing
-  // view to be positioned in such a way that it would leave empty space on
-  // the screen.
-  if (dy > 0.0) {
-    // Since we assume that we're never acting on an already adjusted frame,
-    // then we will never have a postive d-y value since that would move the
-    // containing view down past where it already begins.
-    dy = 0.0;
-  } else if ((containingRect.origin.y + containingRect.size.height + dy) < keyboardRect.origin.y) {
-    // The containing view should never be moved up in such a way that its
-    // bottom would be above the top of the keyboard.
-    dy = keyboardRect.origin.y - (containingRect.origin.y + containingRect.size.height);
-  }
+    UIView *parentView = containingView.superview;
+    if ([parentView isMemberOfClass:[UIScrollView class]]) {
 
-  CGPoint dOrigin = CGPointApplyAffineTransform(CGPointMake(0.0, dy), containingView.transform);
+      UIScrollView* scrollView = (UIScrollView *) parentView;
+      UIEdgeInsets contentInsets = UIEdgeInsetsMake(0.0, 0.0, keyboardRect.size.height, 0.0);
+      scrollView.contentInset = contentInsets;
+      scrollView.scrollIndicatorInsets = contentInsets;
 
-  CGRect containingFrame = containingView.frame;
-  containingFrame.origin.x += dOrigin.x;
-  containingFrame.origin.y += dOrigin.y;
+      CGRect absoluteRect = (CGRect) [scrollView.superview convertRect:scrollView.frame toView:nil];
 
-  [UIView beginAnimations:nil context:NULL];
-  [UIView setAnimationBeginsFromCurrentState:YES];
-  [UIView setAnimationCurve:self.keyboardAnimationCurve];
-  [UIView setAnimationDuration:self.keyboardAnimationDuration];
-  [containingView setFrame:containingFrame];
-  [UIView commitAnimations];
+      CGRect aRect = scrollView.frame;
+      absoluteRect.size.height = keyboardRect.origin.y - absoluteRect.origin.y;
+      CGPoint responderOrigin = responder.frame.origin;
+      responderOrigin.y = responderOrigin.y;
+      responderOrigin = [containingView convertPoint:responderOrigin toView:nil];
+      if (!CGRectContainsPoint(absoluteRect, responderOrigin) ) {
+          CGPoint scrollPoint = CGPointMake(0.0, responder.frame.origin.y - absoluteRect.size.height + responder.frame.size.height + 4);
+          [scrollView setContentOffset:scrollPoint animated:YES];
+      }
+    } else {
+      // Calculate where the responding view would sit exactly halfway between the
+      // top of the containing view and the top of the keyboard view.
+      CGFloat midline = (keyboardRect.origin.y - containingRect.origin.y) / 2.0;
+      CGFloat calculatedResponderY = midline - floorf(responderRect.size.height / 2.0);
+      CGFloat dy = calculatedResponderY - responderRect.origin.y;
+
+      // Bound the calculated d-y  value so that it doesn't cause the containing
+      // view to be positioned in such a way that it would leave empty space on
+      // the screen.
+      if (dy > 0.0) {
+        // Since we assume that we're never acting on an already adjusted frame,
+        // then we will never have a postive d-y value since that would move the
+        // containing view down past where it already begins.
+        dy = 0.0;
+      } else if ((containingRect.origin.y + containingRect.size.height + dy) < keyboardRect.origin.y) {
+        // The containing view should never be moved up in such a way that its
+        // bottom would be above the top of the keyboard.
+        dy = keyboardRect.origin.y - (containingRect.origin.y + containingRect.size.height);
+      }
+
+      CGPoint dOrigin = CGPointApplyAffineTransform(CGPointMake(0.0, dy), containingView.transform);
+
+      CGRect containingFrame = containingView.frame;
+      containingFrame.origin.x += dOrigin.x;
+      containingFrame.origin.y += dOrigin.y;
+
+      [UIView beginAnimations:nil context:NULL];
+      [UIView setAnimationBeginsFromCurrentState:YES];
+      [UIView setAnimationCurve:self.keyboardAnimationCurve];
+      [UIView setAnimationDuration:self.keyboardAnimationDuration];
+      [containingView setFrame:containingFrame];
+      [UIView commitAnimations];
+    }
 }
 
 @end

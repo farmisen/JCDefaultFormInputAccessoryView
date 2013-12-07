@@ -1,7 +1,7 @@
 Pod::Spec.new do |s|
   s.name         = 'JCDefaultFormInputAccessoryView'
   s.platform     = :ios, '5.0'
-  s.version      = '0.9.4'
+  s.version      = '0.9.5'
   s.summary      = 'Default input accessory view for iOS with next/previous and done buttons.'
   s.license      = { :type => 'MIT', :file => 'LICENSE.txt' }
   s.homepage     = 'https://github.com/jcoleman/JCDefaultFormInputAccessoryView'
